@@ -16,10 +16,10 @@ const App = () => {
   useEffect(() => {
     // Initialize PeerJS
     const newPeer = new Peer(undefined, {
-      host: "172.105.252.214", // Linode server IP
-  port: 5000, // The same port as your backend
-  path: "/peerjs", // This should match your backend route
-  secure: false //
+      host: "https://audio-backend-vw9o.onrender.com", // Linode server IP
+      port: 443, // ✅ Use port 443 for HTTPS
+      path: "/peerjs",
+      secure: true, // ✅ Required for HTTPS//
     });
 
     newPeer.on("open", (id) => {
