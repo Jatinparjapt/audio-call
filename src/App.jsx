@@ -1,65 +1,79 @@
 import React, { useState, useEffect, useRef } from "react";
-import Peer from "peerjs"
-// import { toast } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
-
-// toast.configure();
+import Peer from "peerjs";
 
 const App = () => {
   const [peerId, setPeerId] = useState("");
   const [remotePeerId, setRemotePeerId] = useState("");
   const [peer, setPeer] = useState(null);
   const [call, setCall] = useState(null);
-  const localAudioRef = useRef();
   const remoteAudioRef = useRef();
 
   useEffect(() => {
-    // Initialize PeerJS
+    // ✅ Initialize PeerJS with HTTPS backend
     const newPeer = new Peer(undefined, {
-      host: "audio-backend-vw9o.onrender.com", // Linode server IP
+      host: "audio-backend-vw9o.onrender.com", 
       port: 443, // ✅ Use port 443 for HTTPS
       path: "/peerjs",
-      secure: true, // ✅ Required for HTTPS//
+      secure: true, // ✅ Must be true for HTTPS
     });
 
     newPeer.on("open", (id) => {
       setPeerId(id);
-      console.log(id , "id")
+      console.log("Peer ID:", id);
       alert(`Your Peer ID: ${id}`);
     });
 
-    newPeer.on("call", (incomingCall) => {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then((stream) => {
-          localAudioRef.current.srcObject = stream;
-          incomingCall.answer(stream);
-          incomingCall.on("stream", (remoteStream) => {
-            remoteAudioRef.current.srcObject = remoteStream;
-          });
-          setCall(incomingCall);
+    // ✅ Handle Incoming Calls
+    newPeer.on("call", async (incomingCall) => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { 
+            echoCancellation: true, // ✅ Reduce echo
+            noiseSuppression: true, // ✅ Reduce background noise
+          }
         });
+
+        incomingCall.answer(stream); // ✅ Answer with local audio
+
+        incomingCall.on("stream", (remoteStream) => {
+          remoteAudioRef.current.srcObject = remoteStream;
+        });
+
+        setCall(incomingCall);
+      } catch (error) {
+        console.error("Error getting audio:", error);
+        alert("Failed to access microphone.");
+      }
     });
 
     setPeer(newPeer);
 
-    return () => {
-      newPeer.destroy();
-    };
+    return () => newPeer.destroy();
   }, []);
 
-  const callPeer = () => {
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        localAudioRef.current.srcObject = stream;
-        const outgoingCall = peer.call(remotePeerId, stream);
-        outgoingCall.on("stream", (remoteStream) => {
-          remoteAudioRef.current.srcObject = remoteStream;
-        });
-        setCall(outgoingCall);
-      })
-      .catch((err) => toast.error("Failed to get audio stream"));
+  // ✅ Call a Peer
+  const callPeer = async () => {
+    if (!remotePeerId) return alert("Enter a Peer ID!");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { 
+          echoCancellation: true,
+          noiseSuppression: true,
+        }
+      });
+
+      const outgoingCall = peer.call(remotePeerId, stream);
+
+      outgoingCall.on("stream", (remoteStream) => {
+        remoteAudioRef.current.srcObject = remoteStream;
+      });
+
+      setCall(outgoingCall);
+    } catch (error) {
+      console.error("Error getting audio:", error);
+      alert("Failed to access microphone.");
+    }
   };
 
   return (
@@ -74,11 +88,6 @@ const App = () => {
         onChange={(e) => setRemotePeerId(e.target.value)}
       />
       <button onClick={callPeer}>Call</button>
-
-      <div>
-        <h3>Local Audio</h3>
-        <audio ref={localAudioRef} autoPlay controls />
-      </div>
 
       <div>
         <h3>Remote Audio</h3>
