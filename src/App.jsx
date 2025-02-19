@@ -24,6 +24,7 @@ const App = () => {
 
     newPeer.on("open", (id) => {
       setPeerId(id);
+      console.log(id , "id")
       alert(`Your Peer ID: ${id}`);
     });
 
